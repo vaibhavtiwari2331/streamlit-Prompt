@@ -1,142 +1,67 @@
-# Step 1: Understand the User Context
-
-# System Prompt: Initial Context Gathering
-system_prompt = """
-You are a travel itinerary planner. Your job is to ask the user specific questions to gather their preferences for a personalized travel itinerary. Focus on:
-1. Destination (city or country).
-2. Trip duration.
-3. Budget (low, moderate, luxury).
-4. Purpose (relaxation, adventure, sightseeing, etc.).
-5. Preferences (specific activities, interests, or requirements).
-Keep your questions simple and adaptable to any location.
-"""
-
-# Example User Prompt: Context Gathering
-user_prompt_1 = "Hello! I need help planning a trip."
-
-# Model Response Example 1
-model_response_1 = "Sure! Let me ask a few questions to customize your itinerary. Where are you planning to travel?"
-
-# Example User Input
-user_input_1 = "I want to visit Italy for 5 days on a luxury budget. I enjoy history, wine, and scenic views."
-
-# Step 2: Build Your Prompt System
-
-# Input Refinement Prompt
-system_prompt_refinement = """
-Based on the user's input, refine additional details:
-1. Dietary preferences (vegetarian, non-vegetarian, vegan, etc.).
-2. Walking tolerance or mobility concerns.
-3. Accommodation type (luxury, budget-friendly, central location, etc.).
-4. Any specific attractions or activities they wish to include.
-Generate responses dynamically based on the provided destination.
-"""
-
-# Example User Prompt for Refinement
-user_prompt_2 = "I love history and scenic views. I prefer staying in luxurious accommodations and have no mobility concerns."
-
-# Model Response Example 2
-model_response_2 = "Great! Noted your preferences. Let's find top-rated historical landmarks, scenic spots, and luxury accommodations in Italy."
-
-# Activity Suggestions
-system_prompt_activities = """
-Generate a list of top-rated activities and attractions in the specified destination. Include:
-1. Famous landmarks aligned with user preferences.
-2. Hidden gems or local experiences.
-3. A mix of activities spread across the day, with time suggestions.
-4. Group activities based on proximity for efficiency.
-"""
-
-# Example Final Prompt
-final_prompt = """
-Based on the refined inputs, generate a multi-day itinerary for the specified destination. Include:
-- Day-by-day breakdown with timings.
-- Suggested attractions and activities.
-- Recommendations for meals and accommodations.
-- Ensure activities align with user preferences and budget.
-"""
-
-# Step 3: Deliverables
-
-# Example Input
-example_input = {
-    "destination": "Italy",
-    "trip_duration": 5,
-    "budget": "luxury",
-    "purpose": "sightseeing",
-    "preferences": {
-        "interests": ["history", "wine", "scenic views"],
-        "accommodation": "luxury",
-        "mobility": "no concerns",
-    }
-}
-
-# Example Output
-example_output = """
-Day 1: Rome
-- Morning: Visit the Colosseum and Roman Forum.
-- Afternoon: Lunch near Piazza Navona, then explore the Pantheon.
-- Evening: Dinner in Trastevere.
-
-Day 2: Rome to Florence
-- Morning: Travel to Florence by train.
-- Afternoon: Visit the Uffizi Gallery and Florence Cathedral.
-- Evening: Wine tasting in a Tuscan vineyard.
-
-Day 3: Tuscany Day Trip
-- Morning: Explore Siena.
-- Afternoon: Relax at a vineyard in Chianti.
-- Evening: Return to Florence.
-
-Day 4: Venice
-- Morning: Travel to Venice. Visit St. Mark’s Basilica.
-- Afternoon: Gondola ride and lunch at a canal-side restaurant.
-- Evening: Relax in Piazza San Marco.
-
-Day 5: Departure
-- Morning: Leisure time in Venice.
-- Afternoon: Depart for home.
-"""
-
-# Step 4: Hosting (With API Integration in Streamlit)
-
 import openai
 import streamlit as st
 
-# openai.api_key = API_KEY
-api_key = st.secrets["API_KEY"]
+# Set your OpenAI API key here (ensure you use secrets management for security in production)
+openai.api_key = st.secrets["api_keys"]["openai_api_key"]
 
-def call_openai_api(prompt):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        return response['choices'][0]['message']['content']
-    except Exception as e:
-        return f"Error: {e}"
+# Function to handle user input and make API requests
+def generate_itinerary(user_input):
+    # Initial system message to provide context to GPT-3 about the task
+    system_prompt = """
+    You are an AI travel planner. Your task is to generate a personalized travel itinerary based on user input. 
+    The user provides their destination, budget, preferences, and trip duration. Generate a 7-day detailed itinerary considering the following:
+    1. The user's budget (low, moderate, high).
+    2. Their interests (e.g., culture, sightseeing, relaxation, local experiences).
+    3. Dietary preferences (e.g., vegetarian, vegan, gluten-free).
+    4. Trip duration and mobility concerns (e.g., moderate walking).
+    5. Suggest a mix of famous and off-the-beaten-path locations.
+    """
 
-def travel_itinerary_planner():
-    st.title("AI Travel Itinerary Planner")
+    # Constructing the prompt for OpenAI API
+    prompt = f"""
+    User input: {user_input}
+    Based on the provided details, generate a detailed 7-day itinerary. Ensure to:
+    - Keep the budget in mind: moderate budget.
+    - Focus on cultural exploration, sightseeing, and local experiences.
+    - Include vegetarian-friendly options.
+    - Provide a mix of well-known and hidden spots for each day.
+    """
 
-    st.header("Tell us about your trip")
-    destination = st.text_input("Where are you planning to travel? (City or Country)")
-    trip_duration = st.number_input("How many days is your trip?", min_value=1, max_value=30)
-    budget = st.selectbox("What is your budget?", ["Low", "Moderate", "Luxury"])
-    purpose = st.multiselect("What's the purpose of your trip?", ["Relaxation", "Adventure", "Sightseeing", "Cultural", "Food & Drinks"])
-    interests = st.text_area("Any specific interests or preferences?")
+    # Making a request to the OpenAI API to generate the itinerary
+    response = openai.Completion.create(
+        engine="text-davinci-003",  # You can use other engines depending on your needs
+        prompt=system_prompt + prompt,
+        max_tokens=1000,  # Adjust the number of tokens based on expected response length
+        temperature=0.7,  # Adjust temperature for creativity and variability
+        n=1,  # Only one response
+        stop=None  # Stop sequence for controlling output
+    )
 
-    if st.button("Generate Itinerary"):
-        if destination and trip_duration and budget:
-            user_input = f"I want to visit {destination} for {trip_duration} days on a {budget} budget. My purpose is {', '.join(purpose)}. I am interested in {interests}."
-            itinerary = call_openai_api(user_input)
-            st.subheader(f"Your Personalized Itinerary for {destination}")
-            st.write(itinerary)
-        else:
-            st.error("Please provide all the required details.")
+    # Extract the generated itinerary
+    itinerary = response.choices[0].text.strip()
+    return itinerary
 
-if __name__ == "__main__":
-    travel_itinerary_planner()
+# Streamlit UI for user input
+st.title("AI Travel Itinerary Generator")
+st.write("Welcome to the personalized AI travel planner. Please provide your travel details below:")
+
+# Input fields for user preferences
+destination = st.text_input("Enter your destination (e.g., Paris):")
+budget = st.selectbox("Select your budget", ["Low", "Moderate", "High"])
+duration = st.slider("Select your trip duration (days)", 1, 14, 7)  # Default 7 days
+preferences = st.text_area("Tell us about your travel preferences (e.g., sightseeing, cultural, relaxing, vegetarian, etc.):")
+
+# Button to generate the itinerary
+if st.button("Generate Itinerary"):
+    if not destination or not preferences:
+        st.error("Please provide both destination and preferences.")
+    else:
+        # Forming user input based on fields
+        user_input = f"Destination: {destination}, Budget: {budget}, Duration: {duration} days, Preferences: {preferences}"
+
+        # Generating the itinerary
+        itinerary = generate_itinerary(user_input)
+
+        # Displaying the generated itinerary
+        st.write("Here is your personalized travel itinerary:")
+        st.write(itinerary)
