@@ -103,6 +103,9 @@ Day 5: Departure
 import openai
 import streamlit as st
 
+# openai.api_key = API_KEY
+api_key = st.secrets["API_KEY"]
+
 def call_openai_api(prompt):
     try:
         response = openai.ChatCompletion.create(
