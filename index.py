@@ -1,8 +1,11 @@
 import openai
 import streamlit as st
 
-# Set your OpenAI API key here (ensure you use secrets management for security in production)
-openai.api_key = st.secrets["api_keys"]["openai_api_key"]
+# Access your OpenAI API key securely from Streamlit's Secrets
+openai_api_key = st.secrets["api_keys"]["openai_api_key"]
+
+# Set the OpenAI API key
+openai.api_key = openai_api_key
 
 # Function to handle user input and make API requests
 def generate_itinerary(user_input):
